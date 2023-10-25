@@ -63,6 +63,7 @@ struct ExtractedView: View {
             selectedIndexSong = musics.firstIndex(of: song)!
             isPlaying.toggle()
             showMiniPlayer = true
+            AudioManager.shared.pause()
             if isPlaying{
                 DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
                     AudioManager.shared.startAudio(songUrl:musics[selectedIndexSong].url)

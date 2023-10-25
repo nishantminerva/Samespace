@@ -107,6 +107,7 @@ struct MiniPlayer: View {
                             // Stop Button
                             HStack{
                                 Button(action: {
+                                    AudioManager.shared.pause()
                                     if !isPlaying {
                                         isPlaying.toggle()
                                     }
@@ -140,6 +141,7 @@ struct MiniPlayer: View {
                                 }
                                 Spacer()
                                 Button(action: {
+                                    AudioManager.shared.pause()
                                     if !isPlaying {
                                         isPlaying.toggle()
                                     }
