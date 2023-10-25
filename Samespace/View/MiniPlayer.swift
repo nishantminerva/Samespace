@@ -16,7 +16,8 @@ struct MiniPlayer: View {
     @Binding var expand: Bool
     @Binding var isPlaying : Bool
     @Binding var selectedSongIndex : Int
-
+    @State private var currentPlaybackTime: Double = 0
+    
     var height = UIScreen.main.bounds.height / 3
     
     // Safearea
@@ -25,15 +26,35 @@ struct MiniPlayer: View {
     // Gesture Offset
     @State var offset: CGFloat = 0
     
-        
-//    private func timeString(time: TimeInterval) -> String {
-//        let minute = Int(time) / 60
-//        let seconds = Int(time) % 60
-//        return String(format: "%02d:%02d", minute, seconds)
-//    }
+    // Labels for current playback time and total duration
+    var playbackTimeLabel: String {
+        let currentTimeString = formatTime(currentPlaybackTime)
+        return "\(currentTimeString)"
+    }
+    
+    var totalDurationLabel: String {
+        return formatTime(totalDuration)
+    }
+    
+    // Format time in MM:SS format
+    func formatTime(_ time: Double) -> String {
+        let minutes = Int(time) / 60
+        let seconds = Int(time) % 60
+        return String(format: "%02d:%02d", minutes, seconds)
+    }
+    
+    var totalDuration: Double {
+        guard let player = AudioManager.shared.player,
+              let currentItem = player.currentItem else {
+            return 0
+        }
+        return CMTimeGetSeconds(currentItem.asset.duration)
+    }
+    
+    
     
     var body: some View {
-            VStack {
+        VStack {
             Capsule()
                 .fill(Color.gray)
                 .frame(width: expand ? 60 : 0, height: expand ? 4 : 0)
@@ -71,109 +92,108 @@ struct MiniPlayer: View {
                             .onAppear{
                                 value.scrollTo(selectedSongIndex)
                             }
-                        VStack(spacing: 15) {
-                            Spacer(minLength: 0)
-                            
-                            VStack {
-                                if expand {
-                                    Text(musics[selectedSongIndex].name)
-                                        .font(.title2)
-                                        .foregroundColor(.primary)
-                                        .fontWeight(.bold)
-                                        .matchedGeometryEffect(id: "Label", in: animation)
-                                    Text(musics[selectedSongIndex].artist)
-                                }
+                            VStack(spacing: 15) {
+                                Spacer(minLength: 0)
                                 
-                            }
-                            .padding()
-                            .padding(.top, 20)
-                            
-                            VStack {
-//                                Slider(value: Binding(get: {
-//                                    currentTime
-//                                }, set: { newValue in
-//                                    seekAudio(to: newValue)
-//                                }), in: 0...totalTime)
-//                                .accentColor(.white)
-//
-//                                HStack{
-//                                    Text(timeString(time: currentTime))
-//                                    Spacer()
-//                                    Text(timeString(time: totalTime))
-//                                }
-                            }
-                            .padding()
-                            
-                            // Stop Button
-                            HStack{
-                                Button(action: {
-                                    AudioManager.shared.pause()
-                                    if !isPlaying {
-                                        isPlaying.toggle()
+                                VStack {
+                                    if expand {
+                                        Text(musics[selectedSongIndex].name)
+                                            .font(.title2)
+                                            .foregroundColor(.primary)
+                                            .fontWeight(.bold)
+                                            .matchedGeometryEffect(id: "Label", in: animation)
+                                        Text(musics[selectedSongIndex].artist)
                                     }
-                                    if selectedSongIndex > 0 {
-                                        selectedSongIndex -= 1
-                                    }
-                                    value.scrollTo(selectedSongIndex, anchor: .top)
-                                    DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
-                                        AudioManager.shared.startAudio(songUrl:musics[selectedSongIndex].url)
-                                    }
-                                }) {
-                                    Image(systemName: "backward.fill")
-                                        .font(.largeTitle)
-                                        .foregroundColor(.primary)
+                                    
                                 }
-                                Spacer()
-                                Button(action: {}) {
-                                    Image(systemName: isPlaying ? "pause.fill" : "play.fill")
-                                        .font(.largeTitle)
-                                        .foregroundColor(.primary)
-                                        .onTapGesture {
-                                            if isPlaying {
-                                                AudioManager.shared.pause()
-                                                isPlaying.toggle()
-                                            } else {
-                                                AudioManager.shared.play()
-                                                isPlaying.toggle()
-                                            }
-                                            
+                                .padding()
+                                .padding(.top, 20)
+                                
+                                VStack {
+                                    Slider(value: $currentPlaybackTime, in: 0...totalDuration, step: 1.0)
+                                        .accentColor(.primary)
+                                    
+                                    HStack{
+                                        Text(playbackTimeLabel)
+                                            .font(.caption)
+                                            .foregroundColor(.gray)
+                                        Spacer()
+                                        Text(totalDurationLabel)
+                                            .font(.caption)
+                                            .foregroundColor(.gray)
+                                    }
+                                    
+                                }
+                                .padding()
+                                
+                                // Stop Button
+                                HStack{
+                                    Button(action: {
+                                        AudioManager.shared.pause()
+                                        if !isPlaying {
+                                            isPlaying.toggle()
                                         }
+                                        if selectedSongIndex > 0 {
+                                            selectedSongIndex -= 1
+                                        }
+                                        value.scrollTo(selectedSongIndex, anchor: .top)
+                                        DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
+                                            AudioManager.shared.startAudio(songUrl:musics[selectedSongIndex].url)
+                                        }
+                                    }) {
+                                        Image(systemName: "backward.fill")
+                                            .font(.largeTitle)
+                                            .foregroundColor(.primary)
+                                    }
+                                    Spacer()
+                                    Button(action: {}) {
+                                        Image(systemName: isPlaying ? "pause.fill" : "play.fill")
+                                            .font(.largeTitle)
+                                            .foregroundColor(.primary)
+                                            .onTapGesture {
+                                                if isPlaying {
+                                                    AudioManager.shared.pause()
+                                                    isPlaying.toggle()
+                                                } else {
+                                                    AudioManager.shared.play()
+                                                    isPlaying.toggle()
+                                                }
+                                                
+                                            }
+                                    }
+                                    Spacer()
+                                    Button(action: {
+                                        AudioManager.shared.pause()
+                                        if !isPlaying {
+                                            isPlaying.toggle()
+                                        }
+                                        if selectedSongIndex < musics.count-1 {
+                                            selectedSongIndex += 1
+                                        }
+                                        value.scrollTo(selectedSongIndex, anchor: .top)
+                                        DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
+                                            AudioManager.shared.startAudio(songUrl:musics[selectedSongIndex].url)
+                                        }
+                                        
+                                    }) {
+                                        Image(systemName: "forward.fill")
+                                            .font(.largeTitle)
+                                            .foregroundColor(.primary)
+                                    }
                                 }
-                                Spacer()
-                                Button(action: {
-                                    AudioManager.shared.pause()
-                                    if !isPlaying {
-                                        isPlaying.toggle()
-                                    }
-                                    if selectedSongIndex < musics.count-1 {
-                                        selectedSongIndex += 1
-                                    }
-                                    value.scrollTo(selectedSongIndex, anchor: .top)
-                                    DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
-                                        AudioManager.shared.startAudio(songUrl:musics[selectedSongIndex].url)
-//                                        print(AVPlayer.currentTime(AudioManager.shared.player!))
-                                    }
-
-                                }) {
-                                    Image(systemName: "forward.fill")
-                                        .font(.largeTitle)
-                                        .foregroundColor(.primary)
-                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(.horizontal, 50)
+                                
+                                
+                                Spacer(minLength: 0)
+                                    .padding(.bottom, safeArea?.bottom == 0 ? 15 : safeArea?.bottom)
                             }
-                            .frame(maxWidth: .infinity)
-                            .padding(.horizontal, 50)
+                            // this will give stretch effect
+                            .frame(height: expand ? nil : 0)
+                            .opacity(expand ? 1 : 0)
                             
                             
-                            Spacer(minLength: 0)
-                            //                .padding()
-                                .padding(.bottom, safeArea?.bottom == 0 ? 15 : safeArea?.bottom)
                         }
-                        // this will give stretch effect
-                        .frame(height: expand ? nil : 0)
-                        .opacity(expand ? 1 : 0)
-                        
-                        
-                    }
                         
                     }
                 } else {
@@ -204,7 +224,6 @@ struct MiniPlayer: View {
                             .foregroundColor(.black)
                             .frame(width: 28,height: 28)
                             .onTapGesture {
-//                                isPlaying.toggle()
                                 if isPlaying {
                                     AudioManager.shared.pause()
                                     isPlaying.toggle()
@@ -223,18 +242,18 @@ struct MiniPlayer: View {
             .padding(.horizontal)
             
         }
-            // expanding to full screen when clicked
+        // expanding to full screen when clicked
         .frame(maxHeight: expand ? .infinity : 80)
-            // moving the miniplayer above the tabBar
-            // approx tabBar height is 49
-            
-            // Divider Line for Separating Miniplayer and TabBar
+        // moving the miniplayer above the tabBar
+        // approx tabBar height is 49
+        
+        // Divider Line for Separating Miniplayer and TabBar
         .background(
             VStack(spacing: 0) {
                 Rectangle()
                     .fill(.ultraThickMaterial)
                     .overlay(content: {
-                    Rectangle()
+                        Rectangle()
                         AsyncImage(url: URL(string: "https://cms.samespace.com/assets/\(musics[selectedSongIndex].cover)")!){image in
                             image
                                 .resizable()
@@ -243,7 +262,7 @@ struct MiniPlayer: View {
                             ProgressView()
                         }
                     })
-
+                
                 
                 Divider()
             }
@@ -258,6 +277,13 @@ struct MiniPlayer: View {
         .offset(y: offset)
         .gesture(DragGesture().onEnded(onEnded(value:)).onChanged(onChanged(value:)))
         .ignoresSafeArea()
+        .onReceive(Timer.publish(every: 1.0, on: .main, in: .common).autoconnect()) { _ in
+            guard let player = AudioManager.shared.player else {
+                return
+            }
+            currentPlaybackTime = CMTimeGetSeconds(player.currentTime())
+        }
+        
         
     }
     
@@ -285,3 +311,4 @@ struct MiniPlayer_Previews: PreviewProvider {
         ContentView()
     }
 }
+
