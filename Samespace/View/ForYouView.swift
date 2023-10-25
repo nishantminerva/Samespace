@@ -62,7 +62,9 @@ struct ExtractedView: View {
         .onTapGesture {
             selectedIndexSong = musics.firstIndex(of: song)!
             isPlaying.toggle()
-            showMiniPlayer = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+                showMiniPlayer = true
+            }
             AudioManager.shared.pause()
             if isPlaying{
                 DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
